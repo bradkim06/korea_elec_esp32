@@ -1,24 +1,24 @@
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
-#include "driver/uart.h"
-#include "eeg_signal.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "signal_processing.h"
+#include "filtering.h"
 
-float result[SIGNAL_LENGTH] = {0.0f};
+// 예제 입력 데이터 (여기에 실제 데이터를 사용)
+float signal[SIGNAL_LENGTH];
+float result[SIGNAL_LENGTH];
 
-// 사용 예시
-void app_main() {
-    float mean_value = calculate_mean_abs(eeg_signal, SIGNAL_LENGTH);
+void app_main(void) {
     for (int i = 0; i < SIGNAL_LENGTH; i++) {
-        eeg_signal[i] = eeg_signal[i] - mean_value;
+        signal[i] = sin(2 * M_PI * 1.0 * i / SAMPLE_RATE) +
+                    sin(2 * M_PI * 0.1 * i / SAMPLE_RATE) +
+                    sin(2 * M_PI * 60.0 * i / SAMPLE_RATE);
     }
 
-    remove_baseline_drift(eeg_signal, result, SIGNAL_LENGTH, 16, 0.5f);
+    eeg_filter_init();
+    eeg_filtering(signal, result);
 
+    // 필터링된 데이터 출력
     for (int i = 0; i < SIGNAL_LENGTH; i++) {
         printf("%f\n", result[i]);
     }

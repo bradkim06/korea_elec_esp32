@@ -3,12 +3,14 @@
 #include <math.h>
 #include <stdio.h>
 
-float calculate_mean_abs(float* data, int data_length) {
-    float sum = 0.0f;
-    for (int i = 0; i < data_length; i++) {
-        sum += fabsf(data[i]);
+// 이상치 제거 함수
+static void remove_outliers(float* input_signal, float* smoothed_signal,
+                            int length, float threshold) {
+    for (int i = 0; i < length; i++) {
+        if (fabs(input_signal[i] - smoothed_signal[i]) > threshold) {
+            input_signal[i] = smoothed_signal[i];
+        }
     }
-    return sum / data_length;
 }
 
 // 이동평균 계산 함수
@@ -33,12 +35,22 @@ void moving_average(float* input_signal, float* output_signal, int length,
     }
 }
 
-// 이상치 제거 함수
-void remove_outliers(float* input_signal, float* smoothed_signal, int length,
-                     float threshold) {
+// 이상치 처리 함수 (3-시그마 규칙 사용)
+void handle_outliers(float* data, int length) {
+    float mean = 0, std_dev = 0;
     for (int i = 0; i < length; i++) {
-        if (fabs(input_signal[i] - smoothed_signal[i]) > threshold) {
-            input_signal[i] = smoothed_signal[i];
+        mean += data[i];
+    }
+    mean /= length;
+    for (int i = 0; i < length; i++) {
+        float diff = data[i] - mean;
+        std_dev += diff * diff;
+    }
+    std_dev = sqrt(std_dev / length);
+    float threshold = 3 * std_dev;
+    for (int i = 0; i < length; i++) {
+        if (fabs(data[i] - mean) > threshold) {
+            data[i] = (data[i] > mean) ? mean + threshold : mean - threshold;
         }
     }
 }
@@ -83,4 +95,53 @@ void preprocess_signal(float* signal, int length) {
     remove_outliers(signal, smoothed_signal, length, THRESHOLD);
 
     free(smoothed_signal);
+}
+
+// NaN 값을 선형 보간으로 처리하는 함수
+void interpolate_nan(float* data, int length) {
+    int last_valid = -1;
+    for (int i = 0; i < length; i++) {
+        if (!isnan(data[i])) {
+            if (last_valid != -1) {
+                for (int j = last_valid + 1; j < i; j++) {
+                    float t = (float)(j - last_valid) / (i - last_valid);
+                    data[j] = data[last_valid] * (1 - t) + data[i] * t;
+                }
+            }
+            last_valid = i;
+        }
+    }
+    // 마지막 NaN 값들 처리
+    for (int i = last_valid + 1; i < length; i++) {
+        data[i] = data[last_valid];
+    }
+}
+
+// 데이터 정규화 함수
+void normalize_data(float* data, int length) {
+    float mean = 0, std_dev = 0;
+    for (int i = 0; i < length; i++) {
+        mean += data[i];
+    }
+    mean /= length;
+    for (int i = 0; i < length; i++) {
+        float diff = data[i] - mean;
+        std_dev += diff * diff;
+    }
+    std_dev = sqrt(std_dev / length);
+    for (int i = 0; i < length; i++) {
+        data[i] = (data[i] - mean) / std_dev;
+    }
+}
+
+// DC 오프셋 제거 함수
+void remove_dc_offset(float* data, int length) {
+    float mean = 0;
+    for (int i = 0; i < length; i++) {
+        mean += data[i];
+    }
+    mean /= length;
+    for (int i = 0; i < length; i++) {
+        data[i] -= mean;
+    }
 }

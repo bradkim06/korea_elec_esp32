@@ -292,24 +292,27 @@ static void apply_padding(float *input, float *padded_input,
 
 void apply_fir_filter(float *input_signal, float *output_signal,
                       int signal_length) {
-    float mean_value = calculate_mean_abs(input_signal, BLOCK_SIZE);
-    for (int i = 0; i < BLOCK_SIZE; i++) {
-        input_signal[i] -= mean_value;
-    }
+    // NaN 값 처리
+    interpolate_nan(input_signal, signal_length);
 
-    // baseline drift 제거
-    remove_baseline_drift(input_signal, BLOCK_SIZE);
+    remove_dc_offset(input_signal, signal_length);
+
+    // 이상치 처리
+    handle_outliers(input_signal, signal_length);
 
     // 신호 전처리
-    preprocess_signal(input_signal, BLOCK_SIZE);
+    preprocess_signal(input_signal, signal_length);
+
+    // 데이터 정규화
+    normalize_data(input_signal, signal_length);
 
     // Apply padding to the input signal
-    apply_padding(input_signal, padded_signal, BLOCK_SIZE);
+    apply_padding(input_signal, padded_signal, signal_length);
 
     dsps_fir_f32_ae32(&fir, padded_signal, temp_output,
-                      BLOCK_SIZE + 2 * pad_length);
+                      signal_length + 2 * pad_length);
 
     // Copy the valid part of the filtered signal (excluding padding)
     memcpy(output_signal, temp_output + NUM_TAPS - 1,
-           BLOCK_SIZE * sizeof(float));
+           signal_length * sizeof(float));
 }

@@ -1,25 +1,29 @@
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
 
-#include "filtering.h"
+#include "eeg_signal.h"
+#include "fir_filter.h"
+#include "signal_processing.h"
 
-// 예제 입력 데이터 (여기에 실제 데이터를 사용)
-float signal[SIGNAL_LENGTH];
-float result[SIGNAL_LENGTH];
+float filtered_signal[BLOCK_SIZE];
 
-void app_main(void) {
-    for (int i = 0; i < SIGNAL_LENGTH; i++) {
-        signal[i] = sin(2 * M_PI * 1.0 * i / SAMPLE_RATE) +
-                    sin(2 * M_PI * 0.1 * i / SAMPLE_RATE) +
-                    sin(2 * M_PI * 60.0 * i / SAMPLE_RATE);
-    }
+void app_main() {
+    init_fir_filter();
 
-    eeg_filter_init();
-    eeg_filtering(signal, result);
+    // // 예제 데이터 시그널
+    // for (int i = 0; i < BLOCK_SIZE; i++) {
+    //     eeg_signal[i] = sin(2 * M_PI * 1.0 * i / SAMPLE_RATE) +
+    //                     sin(2 * M_PI * 0.1 * i / SAMPLE_RATE) +
+    //                     sin(2 * M_PI * 0.2 * i / SAMPLE_RATE) +
+    //                     sin(2 * M_PI * 0.3 * i / SAMPLE_RATE) +
+    //                     sin(2 * M_PI * 60 * i / SAMPLE_RATE) +
+    //                     sin(2 * M_PI * 100.0 * i / SAMPLE_RATE);
+    // }
 
-    // 필터링된 데이터 출력
-    for (int i = 0; i < SIGNAL_LENGTH; i++) {
-        printf("%f\n", result[i]);
+    apply_fir_filter(eeg_signal, filtered_signal, BLOCK_SIZE);
+
+    // Output filtered signal
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%f\n", filtered_signal[i]);
     }
 }

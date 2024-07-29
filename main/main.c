@@ -1,25 +1,36 @@
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 
-#include "driver/uart.h"
 #include "eeg_signal.h"
+#include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "iir_filter.h"
 #include "signal_processing.h"
 
-float result[SIGNAL_LENGTH] = {0.0f};
+float filtered_signal[BLOCK_SIZE];
 
-// 사용 예시
+void filter_task(void* pvParameters) {
+    // 예제 데이터 시그널
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        eeg_signal[i] = sin(2 * M_PI * 1.0 * i / SAMPLE_RATE) +
+                        sin(2 * M_PI * 0.1 * i / SAMPLE_RATE) +
+                        sin(2 * M_PI * 0.15 * i / SAMPLE_RATE) +
+                        sin(2 * M_PI * 100.0 * i / SAMPLE_RATE) +
+                        sin(2 * M_PI * 60.0 * i / SAMPLE_RATE);
+    }
+
+    apply_iir_filter(eeg_signal, filtered_signal, BLOCK_SIZE);
+
+    // 결과 출력
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%f\n", filtered_signal[i]);
+    }
+
+    vTaskDelete(NULL);
+}
+
 void app_main() {
-    float mean_value = calculate_mean_abs(eeg_signal, SIGNAL_LENGTH);
-    for (int i = 0; i < SIGNAL_LENGTH; i++) {
-        eeg_signal[i] = eeg_signal[i] - mean_value;
-    }
-
-    remove_baseline_drift(eeg_signal, result, SIGNAL_LENGTH, 16, 0.5f);
-
-    for (int i = 0; i < SIGNAL_LENGTH; i++) {
-        printf("%f\n", result[i]);
-    }
+    xTaskCreate(filter_task, "filter_task", 4096, NULL, 5, NULL);
 }

@@ -3,11 +3,9 @@
 #include <stdio.h>
 
 #include "eeg_signal.h"
-#include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "iir_filter.h"
-#include "signal_processing.h"
 
 float filtered_signal[BLOCK_SIZE];
 

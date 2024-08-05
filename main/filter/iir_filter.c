@@ -75,20 +75,6 @@ void sosfiltfilt(const float* input, float* output, int length) {
 
 void apply_iir_filter(float* input_signal, float* output_signal,
                       int signal_length) {
-    // NaN 값 처리
-    interpolate_nan(input_signal, signal_length);
-
-    remove_dc_offset(input_signal, signal_length);
-
-    // 이상치 처리
-    handle_outliers(input_signal, signal_length);
-
-    // 신호 전처리
-    preprocess_signal(input_signal, signal_length);
-
-    // 데이터 정규화
-    normalize_data(input_signal, signal_length);
-
     // 필터 적용
     sosfiltfilt(input_signal, output_signal, signal_length);
 }

@@ -6,9 +6,14 @@
 #include "esp_task_wdt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "iir_filter.h"
 #include "sfft.h"
+#include "signal_processing.h"
 
 static const char *TAG = "STFT_Example";
+
+// Input signal
+__attribute__((aligned(16))) float filtered_signal[N_SAMPLES];
 
 void generate_sine_wave(float *signal, int length, float sample_rate) {
     for (int i = 0; i < length; i++) {
@@ -28,19 +33,18 @@ void app_main() {
     // Generate a sample input signal (e.g., sine wave)
     generate_sine_wave(input_signal, N_SAMPLES, N_FFT);
 
-    // Perform STFT
-    stft(input_signal, N_SAMPLES, N_FFT, WIN_LENGTH, HOP_LENGTH, stft_result);
+    // 신호 전처리
+    preprocess_signal(input_signal, N_SAMPLES);
 
-    // Display results (magnitude of STFT)
-    int n_frames = 1 + (N_SAMPLES - WIN_LENGTH) / HOP_LENGTH;
-    for (int frame = 0; frame < n_frames; frame++) {
-        ESP_LOGI(TAG, "Frame %d:", frame);
-        for (int i = 0; i < N_FFT / 2; i++) {
-            float magnitude = cabsf(stft_result[frame * N_FFT + i]);
-            ESP_LOGI(TAG, "  Bin %d: %f", i, magnitude);
-        }
-        vTaskDelay(10);
-    }
+    apply_iir_filter(input_signal, filtered_signal, N_SAMPLES);
+
+    // Perform STFT
+    stft(filtered_signal, N_SAMPLES, N_FFT, WIN_LENGTH, HOP_LENGTH,
+         stft_result);
+
+    // Compute log spectrogram
+    float log_spectrogram[N_FRAME * (N_FFT / 2)];
+    compute_log_spectrogram(stft_result, log_spectrogram);
 
     ESP_LOGI(TAG, "STFT completed");
 }

@@ -4,10 +4,12 @@
 #include <complex.h>
 
 // Define constants
-#define N_SAMPLES 256
+#define N_SAMPLES 512
 #define N_FFT 256
 #define WIN_LENGTH N_FFT
 #define HOP_LENGTH 128
+
+extern const int N_FRAME;
 
 // Input signal
 extern float input_signal[N_SAMPLES];
@@ -20,5 +22,7 @@ extern float complex
 // Function declarations
 void stft(float *data, int data_length, int n_fft, int win_length,
           int hop_length, float complex *result);
+void compute_log_spectrogram(float complex *stft_result,
+                             float *log_spectrogram);
 
 #endif  // SFFT_H

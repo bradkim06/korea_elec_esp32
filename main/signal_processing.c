@@ -77,26 +77,6 @@ void remove_baseline_drift(float* signal, int length) {
     free(rolling_mean);
 }
 
-// 신호를 전처리하는 함수
-void preprocess_signal(float* signal, int length) {
-    const int WINDOW_SIZE = 5;
-    const float THRESHOLD = 0.5f;
-
-    float* smoothed_signal = (float*)malloc(length * sizeof(float));
-    if (smoothed_signal == NULL) {
-        printf("Memory allocation failed\n");
-        return;
-    }
-
-    // 이동평균 적용
-    moving_average(signal, smoothed_signal, length, WINDOW_SIZE);
-
-    // 이상치 제거
-    remove_outliers(signal, smoothed_signal, length, THRESHOLD);
-
-    free(smoothed_signal);
-}
-
 // NaN 값을 선형 보간으로 처리하는 함수
 void interpolate_nan(float* data, int length) {
     int last_valid = -1;
@@ -144,4 +124,31 @@ void remove_dc_offset(float* data, int length) {
     for (int i = 0; i < length; i++) {
         data[i] -= mean;
     }
+}
+
+// 신호를 전처리하는 함수
+void preprocess_signal(float* signal, int length) {
+    const int WINDOW_SIZE = 5;
+    const float THRESHOLD = 0.5f;
+
+    // NaN 값 처리
+    interpolate_nan(signal, length);
+
+    remove_dc_offset(signal, length);
+
+    remove_baseline_drift(signal, length);
+
+    float* smoothed_signal = (float*)malloc(length * sizeof(float));
+    if (smoothed_signal == NULL) {
+        printf("Memory allocation failed\n");
+        return;
+    }
+
+    // 이동평균 적용
+    moving_average(signal, smoothed_signal, length, WINDOW_SIZE);
+
+    // 이상치 제거
+    remove_outliers(signal, smoothed_signal, length, THRESHOLD);
+
+    free(smoothed_signal);
 }

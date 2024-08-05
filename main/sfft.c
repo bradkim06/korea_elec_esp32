@@ -47,7 +47,7 @@ void stft(float *data, int data_length, int n_fft, int win_length,
 #ifdef ENABLE_LOGGING
         // Print STFT result for the current frame
         ESP_LOGI("STFT", "Frame %d:", frame);
-        for (int i = 0; i < n_fft; i++) {
+        for (int i = 0; i < n_fft / 2; i++) {
             float magnitude = cabsf(result[frame * n_fft + i]);
             ESP_LOGI("STFT", "  Bin %d: %f", i, magnitude);
         }

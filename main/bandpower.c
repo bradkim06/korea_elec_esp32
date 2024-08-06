@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "eeg_signal.h"
 #include "esp_dsp.h"
 #include "esp_system.h"
 #include "esp_task_wdt.h"
@@ -26,9 +27,10 @@ __attribute__((aligned(16))) float filtered_signal[N_SAMPLES];
 
 void generate_sine_wave(float *signal, int length, float sample_rate) {
     for (int i = 0; i < length; i++) {
-        signal[i] = sinf(2 * M_PI * 5.0f * i / sample_rate) +
-                    sinf(2 * M_PI * 100.0f * i / sample_rate) +
-                    sinf(2 * M_PI * 0.1f * i / sample_rate);
+        // signal[i] = sinf(2 * M_PI * 5.0f * i / sample_rate) +
+        //             sinf(2 * M_PI * 100.0f * i / sample_rate) +
+        //             sinf(2 * M_PI * 0.1f * i / sample_rate);
+        signal[i] = eeg_signal[i];
     }
 }
 

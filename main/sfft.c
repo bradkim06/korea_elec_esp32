@@ -5,7 +5,7 @@
 
 #include "esp_dsp.h"
 
-// #define ENABLE_LOGGING
+#define ENABLE_LOGGING
 
 const int N_FRAME = 1 + (N_SAMPLES - WIN_LENGTH) / HOP_LENGTH;
 
@@ -44,14 +44,28 @@ void stft(float *data, int data_length, int n_fft, int win_length,
         dsps_fft2r_fc32((float *)&result[frame * n_fft], n_fft);
         dsps_bit_rev_fc32((float *)&result[frame * n_fft], n_fft);
 
-#ifdef ENABLE_LOGGING
-        // Print STFT result for the current frame
-        ESP_LOGI("STFT", "Frame %d:", frame);
-        for (int i = 0; i < n_fft / 2; i++) {
-            float magnitude = cabsf(result[frame * n_fft + i]);
-            ESP_LOGI("STFT", "  Bin %d: %f", i, magnitude);
+        // #ifdef ENABLE_LOGGING
+        //         // Print STFT result for the current frame
+        //         ESP_LOGI("STFT", "Frame %d:", frame);
+        //         for (int i = 0; i < n_fft / 2; i++) {
+        //             float magnitude = cabsf(result[frame * n_fft + i]);
+        //             ESP_LOGI("STFT", "  Bin %d: %f", i, magnitude);
+        //         }
+        // #endif
+    }
+}
+
+void print_log_spectrogram(int rows, int cols, float *log_spectrogram) {
+    for (int j = 0; j < cols; j++) {
+        printf("raw%d: ", j);
+        for (int i = 0; i < rows; i++) {
+            // 1차원 배열처럼 접근하기 위해 인덱스를 계산
+            printf("%f", *(log_spectrogram + i * cols + j));
+            if (i < rows - 1) {
+                printf(", ");
+            }
         }
-#endif
+        printf("\n");
     }
 }
 
@@ -60,19 +74,12 @@ void compute_log_spectrogram(float complex *stft_result,
     int n_frames = 1 + (N_SAMPLES - WIN_LENGTH) / HOP_LENGTH;
 
     for (int frame = 0; frame < n_frames; frame++) {
-#ifdef ENABLE_LOGGING
-        ESP_LOGI("Log Frame", "%d:", frame);
-#endif
         for (int i = 0; i < N_FFT / 2; i++) {
             float magnitude = cabsf(stft_result[frame * N_FFT + i]);
             log_spectrogram[frame * (N_FFT / 2) + i] =
                 100 * log10f(magnitude * magnitude);
-
-#ifdef ENABLE_LOGGING
-            // Print log spectrogram for the current frame
-            ESP_LOGI("Log Spectrogram", "  Bin %d: %f", i,
-                     log_spectrogram[frame * (N_FFT / 2) + i]);
-#endif
         }
     }
+
+    print_log_spectrogram(n_frames, N_FFT / 2, log_spectrogram);
 }

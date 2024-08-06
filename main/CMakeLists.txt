@@ -1,10 +1,10 @@
 file(GLOB_RECURSE app_sources "*.c")
+file(GLOB_RECURSE filter_sources "filter/*.c")
 
 idf_component_register(
   SRCS
   ${app_sources}
-  "filter/fir_filter.c"
-  "filter/iir_filter.c"
+  ${filter_sources}
   INCLUDE_DIRS
   "include"
   REQUIRES

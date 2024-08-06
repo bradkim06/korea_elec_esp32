@@ -9,11 +9,12 @@ typedef struct {
 } KalmanFilter;
 
 // Kalman Filter 초기화 함수
-void kalman_filter_init(KalmanFilter *kf, float transition_matrix,
-                        float observation_matrix, float initial_state_estimate,
-                        float initial_estimate_covariance,
-                        float observation_covariance,
-                        float transition_covariance) {
+static void kalman_filter_init(KalmanFilter *kf, float transition_matrix,
+                               float observation_matrix,
+                               float initial_state_estimate,
+                               float initial_estimate_covariance,
+                               float observation_covariance,
+                               float transition_covariance) {
     kf->transition_matrix = transition_matrix;
     kf->observation_matrix = observation_matrix;
     kf->state_estimate = initial_state_estimate;
@@ -23,7 +24,7 @@ void kalman_filter_init(KalmanFilter *kf, float transition_matrix,
 }
 
 // Kalman Filter 업데이트 함수
-void kalman_filter_update(KalmanFilter *kf, float measurement) {
+static void kalman_filter_update(KalmanFilter *kf, float measurement) {
     // Prediction update
     float predicted_state_estimate = kf->transition_matrix * kf->state_estimate;
     float predicted_estimate_covariance = kf->transition_matrix *
@@ -50,12 +51,12 @@ void kalman_filter_update(KalmanFilter *kf, float measurement) {
 }
 
 // Kalman Filter 적용 함수
-void apply_kalman_filter(float *data, int data_length, float *filtered_data) {
+void apply_kalman_filter(float *data, int data_length) {
     KalmanFilter kf;
     kalman_filter_init(&kf, 1.0, 1.0, 0.0, 1.0, 0.4, 0.01);
 
     for (int i = 0; i < data_length; i++) {
         kalman_filter_update(&kf, data[i]);
-        filtered_data[i] = kf.state_estimate;
+        data[i] = kf.state_estimate;
     }
 }

@@ -4,7 +4,6 @@
 #include <string.h>
 
 #define NUM_SECTIONS 2
-#define PADTYPE 3 * NUM_SECTIONS  // Padding length
 
 const float sos_coeffs[NUM_SECTIONS][6] = {
     {0.60757643f, 1.21515285f, 0.60757643f, 1.00000000f, 1.06642387f,
@@ -23,8 +22,29 @@ void sosfilt(const float sos[6], const float *x, float *y, int n) {
     }
 }
 
-void sosfiltfilt(const float *x, float *y, int n) {
-    int padded_length = n + 2 * PADTYPE;
+void pad_signal(const float *x, float *padded_signal, int n, int padlen,
+                const char *padtype) {
+    if (strcmp(padtype, "odd") == 0) {
+        for (int i = 0; i < padlen; i++) {
+            padded_signal[i] = 2 * x[0] - x[padlen - i];
+            padded_signal[n + padlen + i] = 2 * x[n - 1] - x[n - 2 - i];
+        }
+    } else if (strcmp(padtype, "even") == 0) {
+        for (int i = 0; i < padlen; i++) {
+            padded_signal[i] = x[padlen - i];
+            padded_signal[n + padlen + i] = x[n - 2 - i];
+        }
+    } else if (strcmp(padtype, "constant") == 0) {
+        for (int i = 0; i < padlen; i++) {
+            padded_signal[i] = x[0];
+            padded_signal[n + padlen + i] = x[n - 1];
+        }
+    }
+    memcpy(padded_signal + padlen, x, n * sizeof(float));
+}
+
+void sosfiltfilt(float *x, int n, const char *padtype, int padlen) {
+    int padded_length = n + 2 * padlen;
     float *padded_signal = (float *)malloc(padded_length * sizeof(float));
     float *temp1 = (float *)malloc(padded_length * sizeof(float));
     float *temp2 = (float *)malloc(padded_length * sizeof(float));
@@ -34,11 +54,7 @@ void sosfiltfilt(const float *x, float *y, int n) {
     }
 
     // Apply padding
-    for (int i = 0; i < PADTYPE; i++) {
-        padded_signal[i] = 2 * x[0] - x[PADTYPE - i];
-        padded_signal[padded_length - 1 - i] = 2 * x[n - 1] - x[n - 2 - i];
-    }
-    memcpy(padded_signal + PADTYPE, x, n * sizeof(float));
+    pad_signal(x, padded_signal, n, padlen, padtype);
 
     // Forward filter
     for (int section = 0; section < NUM_SECTIONS; section++) {
@@ -72,14 +88,15 @@ void sosfiltfilt(const float *x, float *y, int n) {
     }
 
     // Copy the result to the output array, removing the padding
-    memcpy(y, temp1 + PADTYPE, n * sizeof(float));
+    memcpy(x, temp1 + padlen, n * sizeof(float));
 
     free(padded_signal);
     free(temp1);
     free(temp2);
 }
 
-void apply_iir_filter(float *input_signal, float *output_signal,
-                      int signal_length) {
-    sosfiltfilt(input_signal, output_signal, signal_length);
+void apply_iir_filter(float *input_signal, int signal_length) {
+    const int padlen = 3 * NUM_SECTIONS;  // Default padlen
+    const char *padtype = "odd";          // Default padtype
+    sosfiltfilt(input_signal, signal_length, padtype, padlen);
 }

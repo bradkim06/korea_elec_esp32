@@ -1,17 +1,16 @@
-
 #include "bandpower.h"
 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "eeg_signal.h"
 #include "esp_dsp.h"
 #include "esp_system.h"
 #include "esp_task_wdt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "iir_filter.h"
+#include "kal_filter.h"
 #include "sfft.h"
 #include "signal_processing.h"
 
@@ -20,49 +19,36 @@ typedef struct {
     int count;
 } Band;
 
-static const char *TAG = "STFT_Example";
-
 // Input signal
-__attribute__((aligned(16))) float filtered_signal[N_SAMPLES];
+__attribute__((aligned(16))) float log_spectrogram[N_FRAMES * (N_FFT / 2)];
+// STFT result
+__attribute__((aligned(16))) float complex
+    sfft_result[N_FFT * ((N_SAMPLES - WIN_LENGTH) / HOP_LENGTH + 1)];
 
-void generate_sine_wave(float *signal, int length, float sample_rate) {
-    for (int i = 0; i < length; i++) {
-        // signal[i] = sinf(2 * M_PI * 5.0f * i / sample_rate) +
-        //             sinf(2 * M_PI * 100.0f * i / sample_rate) +
-        //             sinf(2 * M_PI * 0.1f * i / sample_rate);
-        signal[i] = eeg_signal[i];
-    }
+int init_bandpower() {
+    init_sfft();
+
+    return 0;
 }
 
-int bandpower() {
-    esp_err_t ret = dsps_fft2r_init_fc32(NULL, CONFIG_DSP_MAX_FFT_SIZE);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize FFT. Error = %i", ret);
-        return ret;
-    }
-
-    // Generate a sample input signal (e.g., sine wave)
-    generate_sine_wave(input_signal, N_SAMPLES, N_FFT);
-
+int bandpower(float *input_signal) {
     // 신호 전처리
     preprocess_signal(input_signal, N_SAMPLES);
 
-    apply_iir_filter(input_signal, filtered_signal, N_SAMPLES);
-
-    // for (int i = 0; i < 512; i++) {
-    //     printf("filtered %d: %f %f\n", i, input_signal[i],
-    //     filtered_signal[i]);
-    // }
+    // 필터링
+    apply_iir_filter(input_signal, N_SAMPLES);
 
     // Perform STFT
-    stft(filtered_signal, N_SAMPLES, N_FFT, WIN_LENGTH, HOP_LENGTH,
-         stft_result);
+    stft(input_signal, sfft_result, N_SAMPLES, N_FFT, WIN_LENGTH, HOP_LENGTH,
+         N_FRAMES);
 
-    // Compute log spectrogram
-    float log_spectrogram[N_FRAME * (N_FFT / 2)];
-    compute_log_spectrogram(stft_result, log_spectrogram);
+    compute_log_spectrogram(sfft_result, log_spectrogram, N_FRAMES, N_FFT);
 
-    // 주파수 대역 인덱스를 강제로 설정
+    apply_kalman_filter(log_spectrogram, N_FRAMES * (N_FFT / 2));
+
+    print_log_spectrogram(N_FRAMES, N_FFT / 2, log_spectrogram);
+
+    // 주파수 대역 인덱스
     Band bands[] = {
         {(int[]){1, 2, 3}, 3},               // Delta
         {(int[]){4, 5, 6, 7}, 4},            // Theta

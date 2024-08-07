@@ -21,5 +21,5 @@ void app_main() {
     generate_sine_wave(input_signal, N_SAMPLES, N_FFT);
 
     init_bandpower();
-    bandpower(input_signal);
+    measureFatigue(input_signal);
 }

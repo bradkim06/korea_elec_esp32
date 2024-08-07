@@ -9,6 +9,6 @@
 #define N_FRAMES (1 + (N_SAMPLES - WIN_LENGTH) / HOP_LENGTH)
 
 int init_bandpower();
-int bandpower(float *input_signal);
+int measureFatigue(float *input_signal);
 
 #endif

@@ -15,8 +15,8 @@
 #include "signal_processing.h"
 
 static void calc_bands_mean();
-static void print_band_means();
 static float mean(float *array, int size);
+static float calculate_concentration(float power_bands[5][N_FRAMES]);
 static int is_drowsy(float power_bands[5][N_FRAMES], int num_frames,
                      float ratio_threshold, float *last_band);
 
@@ -28,12 +28,14 @@ __attribute__((aligned(16))) float complex
 // 예시 데이터 크기 (num_bands * n_frames)
 __attribute__((aligned(16))) float band_means[5][N_FRAMES];
 
+typedef enum { DELTA = 0, THETA, ALPHA, BETA, GAMMA, BAND_COUNT } BandType;
+
 typedef struct {
     int *freqBin;
     int size;
 } Band;
 
-Band bands[5];  // Declare the array globally
+Band bands[BAND_COUNT];  // Declare the array globally
 
 Band createBand(int start, int count) {
     Band b;
@@ -58,7 +60,7 @@ int init_bandpower() {
     return 0;
 }
 
-int bandpower(float *input_signal) {
+int measureFatigue(float *input_signal) {
     // 신호 전처리
     preprocess_signal(input_signal, N_SAMPLES);
 
@@ -78,12 +80,9 @@ int bandpower(float *input_signal) {
         apply_kalman_filter(band_means[band], N_FRAMES);
     }
 
-    // print_band_means();
-
+    float concentration = calculate_concentration(band_means);
     float ratio_threshold = 2.7;
     float last_band[4] = {0, 0, 0, 0};
-
-    init_bandpower();  // 밴드 초기화
 
     int drowsy = is_drowsy(band_means, N_FRAMES, ratio_threshold, last_band);
 
@@ -109,21 +108,21 @@ static void calc_bands_mean() {
     }
 }
 
-static void print_band_means() {
-    const int num_bands = sizeof(bands) / sizeof(bands[0]);
-
-    printf("\nBand Means:\n");
-    for (int band = 0; band < num_bands; band++) {
-        printf("Band %d: [", band);
-        for (int frame = 0; frame < N_FRAMES; frame++) {
-            printf("%f", band_means[band][frame]);
-            if (frame < N_FRAMES - 1) {
-                printf(", ");
-            }
-        }
-        printf("]\n");
-    }
-}
+// static void print_band_means() {
+//     const int num_bands = sizeof(bands) / sizeof(bands[0]);
+//
+//     printf("\nBand Means:\n");
+//     for (int band = 0; band < num_bands; band++) {
+//         printf("Band %d: [", band);
+//         for (int frame = 0; frame < N_FRAMES; frame++) {
+//             printf("%f", band_means[band][frame]);
+//             if (frame < N_FRAMES - 1) {
+//                 printf(", ");
+//             }
+//         }
+//         printf("]\n");
+//     }
+// }
 
 static float mean(float *array, int size) {
     float sum = 0.0;
@@ -131,6 +130,23 @@ static float mean(float *array, int size) {
         sum += array[i];
     }
     return sum / size;
+}
+
+// 집중도를 계산하는 함수
+static float calculate_concentration(float power_bands[5][N_FRAMES]) {
+    const float MAX_CONCENTRATION = 1.0;
+    const float MIN_CONCENTRATION = 0.0;
+
+    float beta_mean = mean(power_bands[BETA], N_FRAMES);
+    float theta_mean = mean(power_bands[THETA], N_FRAMES);
+
+    float concentration = (theta_mean != 0) ? beta_mean / theta_mean : 0;
+
+    // 지수 함수 적용 (제곱)
+    concentration = concentration * concentration;  // concentration^2
+
+    // 결과를 0.0과 1.0 사이로 제한
+    return fminf(MAX_CONCENTRATION, fmaxf(MIN_CONCENTRATION, concentration));
 }
 
 static int is_drowsy(float power_bands[5][N_FRAMES], int num_frames,
@@ -141,10 +157,10 @@ static int is_drowsy(float power_bands[5][N_FRAMES], int num_frames,
     int drowsy_state_count = 0;
 
     for (int i = 0; i <= num_frames - window_size; i++) {
-        float cur_delta = mean(power_bands[0] + i, window_size);
-        float cur_theta = mean(power_bands[1] + i, window_size);
-        float cur_alpha = mean(power_bands[2] + i, window_size);
-        float cur_beta = mean(power_bands[3] + i, window_size);
+        float cur_delta = mean(power_bands[DELTA] + i, window_size);
+        float cur_theta = mean(power_bands[THETA] + i, window_size);
+        float cur_alpha = mean(power_bands[ALPHA] + i, window_size);
+        float cur_beta = mean(power_bands[BETA] + i, window_size);
 
         float ratio = (cur_theta + cur_alpha) / cur_beta;
         if (cur_beta == 0) {

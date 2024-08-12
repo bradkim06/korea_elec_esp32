@@ -8,11 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 
 
 ### Added
-- ci: add pre-commit hooks
 
 ### Changed
 
 ### Removed
+
+## [1.5.1]  2024-08-2
+
+### Added
+- Added support for esp32p4 chip
+
+## [1.4.14] 2024-07-31
+
+### Added
+- 2D convolution added
+
+## [1.4.13] 2024-05-08
+
+### Added
+- ci: add tests for IDF release 5.3
+
+## [1.4.12] 2024-03-21
+
+### Added
+- ci: add pre-commit hooks
+
+### Changed
+- dock: list of supported targets updated 
 
 ## [1.4.11] 2024-02-21
 
